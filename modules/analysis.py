@@ -27,7 +27,7 @@ class IndicesAnalyzer:
     
     def calculate_metrics(self):
         """
-        Calculate key metrics for each index
+        Calculate key metrics for each index using closing prices
         
         Returns:
         --------
@@ -37,7 +37,8 @@ class IndicesAnalyzer:
             metrics_list = []
             
             for index_name, df in self.indices_data.items():
-                if df.empty:
+                if df.empty or 'Close' not in df.columns:
+                    logger.warning(f"Invalid data for {index_name}")
                     continue
                 
                 close_prices = df['Close'].values
@@ -46,23 +47,31 @@ class IndicesAnalyzer:
                 current_price = float(close_prices[-1])
                 start_price = float(close_prices[0])
                 change = current_price - start_price
-                pct_change = (change / start_price) * 100
+                pct_change = (change / start_price) * 100 if start_price != 0 else 0
                 
-                high_price = float(df['High'].max())
-                low_price = float(df['Low'].min())
+                # High/Low from closing prices only
+                high_price = float(np.max(close_prices))
+                low_price = float(np.min(close_prices))
                 
                 # Calculate volatility (standard deviation of daily returns)
-                daily_returns = df['Close'].pct_change().dropna()
-                volatility = float(daily_returns.std() * np.sqrt(252) * 100)  # Annualized
-                
-                # Calculate average volume
-                avg_volume = float(df['Volume'].mean()) if 'Volume' in df.columns else 0.0
+                daily_returns = pd.Series(close_prices).pct_change().dropna()
+                volatility = float(daily_returns.std() * np.sqrt(252) * 100) if len(daily_returns) > 0 else 0
                 
                 # Moving averages
                 ma_50_series = df['Close'].rolling(window=50).mean()
                 ma_20_series = df['Close'].rolling(window=20).mean()
-                ma_50 = float(ma_50_series.iloc[-1]) if not pd.isna(ma_50_series.iloc[-1]) else current_price
-                ma_20 = float(ma_20_series.iloc[-1]) if not pd.isna(ma_20_series.iloc[-1]) else current_price
+                
+                try:
+                    ma_50_val = ma_50_series.iloc[-1]
+                    ma_50 = float(ma_50_val) if pd.notna(ma_50_val) else current_price
+                except:
+                    ma_50 = current_price
+                
+                try:
+                    ma_20_val = ma_20_series.iloc[-1]
+                    ma_20 = float(ma_20_val) if pd.notna(ma_20_val) else current_price
+                except:
+                    ma_20 = current_price
                 
                 metrics_list.append({
                     'Index': index_name,
@@ -70,12 +79,12 @@ class IndicesAnalyzer:
                     'Start Price': round(start_price, 2),
                     'Change (%)': round(pct_change, 2),
                     'Absolute Change': round(change, 2),
-                    '52W High': round(high_price, 2),
-                    '52W Low': round(low_price, 2),
+                    'High (6M)': round(high_price, 2),
+                    'Low (6M)': round(low_price, 2),
                     'Volatility (%)': round(volatility, 2),
                     'MA-20': round(ma_20, 2),
                     'MA-50': round(ma_50, 2),
-                    'Avg Volume': f"{avg_volume:,.0f}"
+                    'Avg Volume': 'N/A'
                 })
             
             self.analysis_results = pd.DataFrame(metrics_list)

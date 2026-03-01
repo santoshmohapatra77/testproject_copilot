@@ -5,7 +5,10 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-from modules.data_fetcher import fetch_indices_data, prepare_combined_dataframe, INDICES
+from modules.historical_fetcher import (
+    get_indices_data_from_db, prepare_combined_dataframe, 
+    sync_database, verify_download_status, INDICES, get_data_date_range_info
+)
 from modules.analysis import IndicesAnalyzer
 from modules.report_generator import PDFReportGenerator
 import os
@@ -59,6 +62,13 @@ st.markdown("""
 st.title(f"📈 {APP_CONFIG.get('app_title', 'Indian Stock Indices Analysis')}")
 st.markdown(f"**{APP_CONFIG.get('app_description', 'Real-time analysis of major Indian stock market indices')}**")
 
+# Display data collection date range
+date_range = get_data_date_range_info()
+if date_range['start_date'] and date_range['end_date']:
+    st.info(f"📅 **Data Collection Period:** {date_range['start_date']} to {date_range['end_date']} (Last 6 Months)")
+else:
+    st.warning("⚠️ No data available. Click '🔄 Refresh Data' in the sidebar to download historical data.")
+
 # Sidebar for controls
 with st.sidebar:
     st.header("⚙️ Configuration")
@@ -89,13 +99,49 @@ with st.sidebar:
             st.write(f"• {idx_name}")
     else:
         st.warning("⚠️ No indices configured. Check config.json")
+    
+    st.divider()
+    
+    # Database status with download verification
+    st.subheader("📊 Database Status")
+    status = verify_download_status()
+    
+    if status:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Downloaded", status.get('total_downloaded', 0))
+        with col2:
+            st.metric("Missing", len(status.get('missing', [])))
+        
+        st.caption("✅ **Downloaded Indices:**")
+        if status.get('downloaded'):
+            for idx in status['downloaded']:
+                st.text(f"  • {idx}")
+        else:
+            st.text("  None yet")
+        
+        if status.get('missing'):
+            st.warning(f"⚠️ **Missing ({len(status['missing'])} indices):**")
+            for idx in status['missing']:
+                st.text(f"  • {idx}")
+            st.info("Click 'Refresh Data' to attempt download of missing indices.")
+    else:
+        st.warning("No data in database yet. Click 'Refresh Data' to download.")
 
 # Main content area
 if refresh_data or 'indices_data' not in st.session_state:
-    with st.spinner("📡 Fetching indices data..."):
-        st.session_state.indices_data = fetch_indices_data(selected_weeks)
+    with st.spinner("📡 Syncing database and fetching indices data..."):
+        # Sync database with latest data
+        sync_database(force_refresh=refresh_data)
+        
+        # Retrieve data from local database
+        st.session_state.indices_data = get_indices_data_from_db(period_days=180)
         st.session_state.last_refresh = datetime.now()
-    st.success("✅ Data refreshed successfully!")
+    
+    if st.session_state.indices_data:
+        st.success("✅ Data synced and retrieved successfully!")
+    else:
+        st.warning("⚠️ No data retrieved from database. Ensure data is downloaded.")
 
 # Check if data is available
 if st.session_state.get('indices_data'):
@@ -163,8 +209,6 @@ if st.session_state.get('indices_data'):
                 use_container_width=True,
                 hide_index=True
             )
-        else:
-            st.warning("⚠️ No data available. Please refresh the data.")
     
     # Tab 2: Trends
     with tab2:
@@ -418,8 +462,9 @@ if st.session_state.get('indices_data'):
 else:
     st.warning("⚠️ Please click 'Refresh Data' to load indices data.")
     if st.button("🔄 Load Data Now"):
-        with st.spinner("Fetching data..."):
-            st.session_state.indices_data = fetch_indices_data(26)
+        with st.spinner("Fetching data from database..."):
+            sync_database(force_refresh=True)
+            st.session_state.indices_data = get_indices_data_from_db(period_days=180)
         st.rerun()
 
 # Footer
