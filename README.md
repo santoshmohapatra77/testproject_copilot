@@ -5,7 +5,7 @@ A comprehensive Streamlit application for analyzing major Indian stock market in
 ## Features
 
 ✨ **Key Features:**
-- **Real-time Data Fetching**: Pulls live data for major Indian indices (NIFTY 50, NIFTY IT, NIFTY BANK, NIFTY PHARMA, NIFTY AUTO, SENSEX)
+- **Real-time Data Fetching**: Pulls live data for major Indian indices (NIFTY 50, NIFTY 500, NIFTY SMALLCAP, NIFTY MIDCAP, NIFTY MIDSMALL400)
 - **Technical Analysis**: Calculates volatility, moving averages, and performance metrics
 - **Interactive Visualizations**: Trend charts, performance rankings, and strength comparisons
 - **PDF Report Generation**: Automated report creation with tables and charts
@@ -93,7 +93,36 @@ The app will open in your browser at `http://localhost:8501`
    - Includes all metrics, rankings, and charts
    - Download and save reports locally
 
-## Configuration Options
+## Configuration
+
+The app uses a `config.json` file to manage indices. You can easily add, remove, or change indices without modifying the code.
+
+### Updating Indices
+
+Edit `config.json` to change the tracked indices:
+
+```json
+{
+  "indices": {
+    "NIFTY 50": "^NSEI",
+    "NIFTY 500": "^NIFTY500",
+    "NIFTY SMALLCAP": "^NSMALLCAP",
+    "NIFTY MIDCAP": "^NSMIDCAP",
+    "NIFTY MIDSMALL400": "^NSMIDSMALL400"
+  },
+  "analysis_period_weeks": 26,
+  "app_title": "Indian Stock Indices Analysis",
+  "app_description": "Real-time analysis of major Indian stock market indices"
+}
+```
+
+**To update indices:**
+1. Open `config.json`
+2. Add/remove/rename entries in the `"indices"` section
+3. Use valid Yahoo Finance tickers (e.g., `^NSEI` for NIFTY 50)
+4. Restart the app - changes will be reflected automatically
+
+### Configuration Options
 
 In the sidebar, you can:
 - **Select Analysis Period**: 26 weeks (6 months), 13 weeks (3 months), or 52 weeks (1 year)
@@ -105,11 +134,10 @@ In the sidebar, you can:
 | Index Name | Ticker |
 |-----------|--------|
 | NIFTY 50 | ^NSEI |
-| NIFTY IT | ^NSMIT |
-| NIFTY BANK | ^NSEBANK |
-| NIFTY PHARMA | ^NSEMDCP50 |
-| NIFTY AUTO | ^CNXIT |
-| SENSEX | ^BSESN |
+| NIFTY 500 | ^NIFTY500 |
+| NIFTY SMALLCAP | ^NSMALLCAP |
+| NIFTY MIDCAP | ^NSMIDCAP |
+| NIFTY MIDSMALL400 | ^NSMIDSMALL400 |
 
 ## Data Source
 

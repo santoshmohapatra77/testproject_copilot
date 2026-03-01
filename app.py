@@ -11,14 +11,30 @@ from modules.report_generator import PDFReportGenerator
 import os
 from datetime import datetime
 import logging
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Load app configuration
+def load_app_config():
+    """Load app configuration from config.json"""
+    try:
+        with open('config.json', 'r') as f:
+            return json.load(f)
+    except:
+        return {
+            'app_title': 'Indian Stock Indices Analysis',
+            'app_description': 'Real-time analysis of major Indian stock market indices (Last 26 Weeks / 6 Months)',
+            'analysis_period_weeks': 26
+        }
+
+APP_CONFIG = load_app_config()
+
 # Page configuration
 st.set_page_config(
-    page_title="Indian Stock Indices Analysis",
+    page_title=APP_CONFIG.get('app_title', 'Indian Stock Indices Analysis'),
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -40,8 +56,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title and description
-st.title("📈 Indian Stock Indices Analysis")
-st.markdown("**Real-time analysis of major Indian stock market indices (Last 26 Weeks / 6 Months)**")
+st.title(f"📈 {APP_CONFIG.get('app_title', 'Indian Stock Indices Analysis')}")
+st.markdown(f"**{APP_CONFIG.get('app_description', 'Real-time analysis of major Indian stock market indices')}**")
 
 # Sidebar for controls
 with st.sidebar:
@@ -68,8 +84,11 @@ with st.sidebar:
     
     # Available indices
     st.subheader("Available Indices")
-    for idx_name in INDICES.keys():
-        st.write(f"• {idx_name}")
+    if INDICES:
+        for idx_name in INDICES.keys():
+            st.write(f"• {idx_name}")
+    else:
+        st.warning("⚠️ No indices configured. Check config.json")
 
 # Main content area
 if refresh_data or 'indices_data' not in st.session_state:

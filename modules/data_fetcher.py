@@ -5,19 +5,44 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import logging
+import json
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Major Indian Stock Indices
-INDICES = {
-    'NIFTY 50': '^NSEI',
-    'NIFTY IT': '^NSMIT',
-    'NIFTY BANK': '^NSEBANK',
-    'NIFTY PHARMA': '^NSEMDCP50',
-    'NIFTY AUTO': '^CNXIT',
-    'SENSEX': '^BSESN',
-}
+def load_indices_config():
+    """
+    Load indices configuration from config.json
+    
+    Returns:
+    --------
+    dict : Dictionary containing indices with name as key and ticker as value
+    """
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+        
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        
+        return config.get('indices', {})
+    
+    except FileNotFoundError:
+        logger.error("config.json not found. Using default indices.")
+        return {
+            'NIFTY 50': '^NSEI',
+            'NIFTY 500': '^NIFTY500',
+            'NIFTY SMALLCAP': '^NSMALLCAP',
+            'NIFTY MIDCAP': '^NSMIDCAP',
+            'NIFTY MIDSMALL400': '^NSMIDSMALL400'
+        }
+    
+    except Exception as e:
+        logger.error(f"Error loading config: {str(e)}")
+        return {}
+
+# Load indices at module initialization
+INDICES = load_indices_config()
 
 def fetch_indices_data(period_weeks=26):
     """
