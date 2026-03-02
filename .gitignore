@@ -148,3 +148,8 @@ data/*.xlsx
 # Environment
 .env.local
 .env.*.local
+
+# Local database and exports
+indices_data.db
+db_exports/
+
